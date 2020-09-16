@@ -14,60 +14,120 @@ class ViewController: UIViewController {
     @IBOutlet weak var textFieldPassword: UITextField!
     
     @IBOutlet weak var buttonSave: UIButton!
-    
+        
     @IBOutlet var uiView: UIView!
     
     var userControl = UserControl()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        buttonSave.layer.cornerRadius = 5
         textFieldEmail.delegate = self
         textFieldPassword.delegate = self
+        cleanForm()
     }
 
     @IBAction func saveUser(_ sender: UIButton) {
-        
-        let fieldsValidated = userControl.validateFields(textFieldEmail: textFieldEmail, textFieldPassword: textFieldPassword)
-        
-        if fieldsValidated {
+                               
+         let user = User(email: textFieldEmail.text!, password: textFieldPassword.text!)
+                     
+         if userControl.validateUserNotExist(user: user) {
+             userControl.addUser(user: user)
+             showLoggedUsers(uiView: uiView)
+             uiView.backgroundColor = #colorLiteral(red: 0.721568644, green: 0.8862745166, blue: 0.5921568871, alpha: 1)
+             showMessage(title: "Welcome!", message: "We have a special offer to you. 💲💲💲")
+         } else {
+             uiView.backgroundColor = #colorLiteral(red: 1, green: 0.6471286626, blue: 0.6249221453, alpha: 1)
+             showMessage(title: "⛔️", message: "You did it already.")
+         }
+         cleanForm()
+    }
+    
+    func showLoggedUsers(uiView: UIView) {
+        if userControl.arrayUsers.count > 0 {
+            var yPos = 380
+            let buttonTitle = UIButton()
+            buttonTitle.tag = 999
+            buttonTitle.setTitle("Logged users", for: .normal)
+            buttonTitle.backgroundColor = UIColor.systemGray
+            buttonTitle.layer.cornerRadius = 5
+            buttonTitle.contentHorizontalAlignment = .center
+            buttonTitle.frame = CGRect( x:25, y:yPos, width:370, height: 40)
+            uiView.addSubview(buttonTitle)
             
-            let user = User(email: textFieldEmail.text!, password: textFieldPassword.text!)
-            
-            let userNotExist = userControl.validateUserNotExist(user: user)
-             
-             if userNotExist {
-                 userControl.addUser(user: user)
-                 for item in userControl.arrayUsers{
-                     print(item.email)
-                     print(item.password)
-                 }
-                uiView.backgroundColor = UIColor.green
-             } else {
-                 uiView.backgroundColor = UIColor.red
-             }
-            
-             textFieldEmail.text = ""
-             textFieldPassword.text = ""
-        } else {
-            showMessage()
+            yPos += 43
+            var i = 1000
+            for user in userControl.arrayUsers {
+                let buttonSingOut = UIButton()
+                buttonSingOut.addTarget(self, action: #selector(signOut), for: .touchUpInside)
+                buttonSingOut.tag = i
+                buttonSingOut.setTitle(" ❌  " + user.email, for: .normal)
+                buttonSingOut.backgroundColor = UIColor.systemGray3
+                buttonSingOut.layer.cornerRadius = 5
+                buttonSingOut.contentHorizontalAlignment = .left
+                buttonSingOut.frame = CGRect( x:25, y:yPos, width:370, height: 40)
+                uiView.addSubview(buttonSingOut)
+                yPos += 43
+                i = i + 1
+            }
         }
     }
     
-    func showMessage() {
-        //alert entra aqui
+     @objc func signOut(_ sender: UIButton) {
+        for subview in uiView.subviews {
+            if subview.tag >= 999 {
+                subview.removeFromSuperview()
+            }
+        }
+        userControl.arrayUsers.remove(at: sender.tag - 1000)
+        showLoggedUsers(uiView: uiView)
+        uiView.setNeedsDisplay()
+     }
+    
+    func showMessage(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+
+        let okAction = UIAlertAction(title: "OK", style: .cancel) { (UIAlertAction) in
+            self.uiView.backgroundColor = UIColor.white
+        }
+        alert.addAction(okAction)
+        self.present(alert, animated: true) {
+        }
+    }
+    
+    func cleanForm() {
+        buttonSave.isEnabled = false
+        buttonSave.backgroundColor = UIColor.systemGray4
+        textFieldEmail.text = ""
+        textFieldPassword.text = ""
     }
 }
 
 extension ViewController: UITextFieldDelegate {
-    
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        textFieldEmail.resignFirstResponder()
+        if textField == textFieldEmail {
+            textFieldPassword.becomeFirstResponder()
+        } else {
+            textFieldPassword.resignFirstResponder()
+        }
+        return true
+    }
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString: String) -> Bool {
+        
+        let email = textFieldEmail.text!
+        let password = textFieldPassword.text!
+        buttonSave.isEnabled = userControl.validateFields(email: email, password: password)
+        if buttonSave.isEnabled {
+            buttonSave.backgroundColor = UIColor.systemBlue
+        } else {
+            buttonSave.backgroundColor = UIColor.systemGray4
+        }
         return true
     }
 }
 
 class User {
-    
     var email: String
     var password: String
     
@@ -78,19 +138,17 @@ class User {
 }
 
 class UserControl {
-        
     var arrayUsers = [User]()
     
     func addUser(user: User) {
         arrayUsers.append(user)
     }
     
-    func validateFields(textFieldEmail: UITextField, textFieldPassword: UITextField) -> Bool {
-        if textFieldEmail.text != nil  && !textFieldEmail.text!.isEmpty && textFieldPassword.text != nil  && !textFieldPassword.text!.isEmpty {
+    func validateFields(email: String, password: String) -> Bool {
+        if !email.isEmpty && !password.isEmpty {
             return true
-        } else {
-            return false
         }
+        return false
     }
     
     func validateUserNotExist(user: User) -> Bool {
@@ -101,4 +159,6 @@ class UserControl {
         }
         return true
     }
+    
+    
 }
